@@ -1,6 +1,7 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const Redis = require('../infra/cache/Redis')
+const fs = require('fs/promises');
 
 class WhatsAppService {
 
@@ -25,7 +26,8 @@ class WhatsAppService {
     }
 
     _onQR(){
-        this._client.on('qr', qr => {
+        this._client.on('qr', async qr => {
+            await fs.writeFile('./qr/qrcode.txt',qr)
             qrcode.generate(qr, {small: true});
         });
     }
