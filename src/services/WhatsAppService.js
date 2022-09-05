@@ -31,8 +31,10 @@ class WhatsAppService {
     }
 
     _onMessage(){
-        this._client.on('message', async (message) => {
-            await this._handleMessage(message)
+        this._client.on('message', async (message) => {   
+            if(message.from==='5511960286810@c.us'){         
+                await this._handleMessage({...message, body:message.body.toLocaleLowerCase()})
+            }
         });
     }
 
@@ -40,21 +42,41 @@ class WhatsAppService {
         const redisLastMessageKey = `lm-${message.from}`
         const lastMessage = await this._redis.get(redisLastMessageKey)
         console.log({lastMessage})
+
         if(!lastMessage){
             this._sendMessageByStep({stepNumber:'0.0', message})
             await this._redis.set({value:'0.0', key:redisLastMessageKey})
             return 
         }
 
-        if(lastMessage && lastMessage==='0.0'){
-            const availableOptions=['1.0','2.0','3.0'] // TODO: MELHORAR AVAILABLEoPTIONS
-
-            if(!availableOptions.includes(message.body))
-                return this._sendMessage({to:message.from, message:"Por favor, digite uma opção válida."})
-
-            //PROXIMA ETAPA
+        const actionByLastMessage={
+            '0.0':async ()=> await this._handleSendMessageByStep({stepNumber:'0.0', message, redisKey:redisLastMessageKey}),
+            '1.0':async ()=> await this._handleSendMessageByStep({stepNumber:'1.0', message, redisKey:redisLastMessageKey}),
+            '2.0':async ()=> await this._handleSendMessageByStep({stepNumber:'2.0', message, redisKey:redisLastMessageKey}),
+            '3.0':async ()=> await this._handleSendMessageByStep({stepNumber:'3.0', message, redisKey:redisLastMessageKey}),
         }
 
+        await actionByLastMessage[lastMessage]()
+        return
+    }
+
+    async _handleSendMessageByStep({stepNumber, message, redisKey}){
+        const availableOptions=this._getAvailableOptionsByStep(stepNumber)
+
+        if(!availableOptions.includes(message.body))
+            return this._sendMessage({to:message.from, message:`Por favor, digite uma opção válida.`})
+
+        if(availableOptions.includes('voltar') && message.body==='voltar'){
+            const step = this._getStep(stepNumber)
+            
+            this._sendMessageByStep({stepNumber:step.back, message})
+            await this._redis.set({value:step.back, key:redisKey})
+            return 
+        }
+
+        this._sendMessageByStep({stepNumber:message.body, message})
+        await this._redis.set({value:message.body, key:redisKey})
+        return
     }
 
     _sendMessage({to, message}){
@@ -68,7 +90,13 @@ class WhatsAppService {
         
         this._sendMessage({to:message.from, message:messageDescription})
         .then(()=>{
-            if(messageOptions) this._sendMessage({to:message.from, message:messageOptions})
+            if(messageOptions)
+                 this._sendMessage({to:message.from, message:messageOptions})
+                .then(()=>{
+                    if(step.hasBack){
+                        this._sendMessage({to:message.from, message:`Ou digite "voltar" para voltar à etapa anterior.`})
+                    }
+                })
         })
     }
 
@@ -94,7 +122,7 @@ class WhatsAppService {
         const availableHours = this._getAvailableHours()
         
         availableHours.forEach((availableHour, index)=>{
-            options[`${step}.${index}`] = availableHour
+            options[`${step}.${index+1}`] = availableHour
         })
 
         return options
@@ -124,8 +152,16 @@ class WhatsAppService {
         const options={}
         const servicePrices = this._getServicePrices()
         servicePrices.forEach((service, index)=>{
-            options[`${step}.${index}`] = service
+            options[`${step}.${index+1}`] = `R$ ${service.price} ${service.title}`
         })
+
+        return options
+    }
+
+    _getAvailableOptionsByStep(stepNumber){
+        const step = this._getStep(stepNumber)
+        const options = Object.keys(step?.options||{})
+        if(step.hasBack) options.push("voltar")
 
         return options
     }
