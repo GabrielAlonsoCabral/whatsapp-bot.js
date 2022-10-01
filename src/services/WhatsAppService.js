@@ -27,16 +27,13 @@ class WhatsAppService {
 
     _onQR(){
         this._client.on('qr', async qr => {
-            await fs.writeFile('./qr/qrcode.txt',qr)
             qrcode.generate(qr, {small: true});
         });
     }
 
     _onMessage(){
         this._client.on('message', async (message) => {   
-            if(message.from==='5511960286810@c.us'){         
                 await this._handleMessage({...message, body:message.body.toLocaleLowerCase()})
-            }
         });
     }
 
@@ -133,19 +130,14 @@ class WhatsAppService {
     _getServicePrices(){
         return [
             {
-                title:"Corte de Cabelo",
+                title:"Limpeza na Unha",
                 duration:"30m",
                 price:"35,00"
             },
             {
-                title:"Barba",
+                title:"Tratamento de Micose",
                 duration:"15m",
                 price:"20,00"
-            },
-            {
-                title:"Cabelo e Barba",
-                duration:"45m",
-                price:"50,00"
             }
         ]
     }
@@ -173,7 +165,7 @@ class WhatsAppService {
         const templateMessages = [
             {
                 step:"0.0",
-                message:"Olá, Eu sou a Barbára!\nA sua Assistente Virtual.\n\nDigite uma das opções abaixos para começarmos seu atendimento.",
+                message:"Olá, Eu sou a Ci!\nA sua Assistente Virtual.\n\nDigite uma das opções abaixos para começarmos seu atendimento.",
                 options:{
                     '1.0':'Quero agendar um horário!',
                     '2.0':'Quero ver a lista de serviços!',
