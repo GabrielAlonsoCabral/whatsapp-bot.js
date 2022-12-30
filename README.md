@@ -1,6 +1,6 @@
 # WhatsAppBot JS
-  WhatsAppBot JS is a bot for WhatsApp developed using javascript.
-  A simple application completely scalable for large integrations.
+  WhatsAppBot JS is a bot for WhatsApp developed using javascript. <br/>
+  A simple application completely scalable for large amount of requests.
   
 
   Developed by: <a href="https://www.github.com/gabrielAlonsoCabral">@GabrielAlonsoCabral</a>  
